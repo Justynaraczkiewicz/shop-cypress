@@ -1,8 +1,20 @@
 import "../support/commands";
 
 describe("Test E2E", () => {
-  const product = "Sauce Labs Bike Light";
-  const price = "9.99";
+  const products = [
+    {
+      name: "Sauce Labs Bike Light",
+      price: "9.99",
+    },
+    {
+      name: "Sauce Labs Backpack",
+      price: "29.99",
+    },
+    {
+      name: "Sauce Labs Bolt T-Shirt",
+      price: "15.99",
+    },
+  ];
 
   beforeEach("loginToApplication", () => {
     cy.loginToApplication();
@@ -14,35 +26,46 @@ describe("Test E2E", () => {
   });
 
   it("Checking Procucts", () => {
-    cy.get('[class="inventory_item_name"]')
-      .contains(product)
-      .should("be.visible");
-
-    //Szukanie przez rodziców
-    // <div class="inventory_item">
-    //   <div class="inventory_item_img"></div>
-    //   <div class="inventory_item_label">
-    //       <a href="./inventory-item.html?id=2" id="item_2_title_link">
-    //           <div class="inventory_item_name">Sauce Labs Onesie</div>
-    //       </a>
-    //   </div>
-    //   <div class="pricebar">
-    //       <div class="inventory_item_price">$7.99</div><button class="btn_primary btn_inventory">ADD TO CART</button>
-    //   </div>
-    // </div>
-    cy.get('[class="inventory_item_name"]')
-      .contains(product)
-      .parents('[class="inventory_item"]')
-      .should("contain", price);
-
-    cy.get('[class="inventory_item_name"]').contains(product).click();
-    cy.get('[class="inventory_details_name"]').should("contain", product);
-    cy.get('[class="inventory_details_price"]').should("contain", price);
+      checkProduct(products[0]);
+      checkProduct(products[1]);
+      checkProduct(products[2]);
   });
 
-  it("Adding Product to Cart from Deatails", () => {
-    cy.get('[class="inventory_item_name"]').contains(product).click();
-    cy.get("button").contains("ADD TO CART").click();
-    cy.get('span[class*="shopping_cart_badge"]').should("contain", "1");
+  it("Adding Product to Cart from Details", () => {
+    for (const product of products) {
+      enterToDetails(product);
+      cy.get("button").contains("ADD TO CART").click();
+      cy.get('span[class*="shopping_cart_badge"]').should("contain", "1");
+      // Wejście do koszyka
+      cy.get('[id="shopping_cart_container"]').click()
+      //Usunięcie z koszyka
+      cy.get('button[class*="cart_button"]').click()
+      //Sprawdzenie czy koszyk jest pusty
+      cy.get('span[class*="shopping_cart_badge"]').should('not.exist')
+      //Kliknięcie Continue Shopping
+      cy.get('[class="btn_secondary"]').should("contain", "Continue Shopping").click()
+      
+    }
   });
 });
+
+function checkProduct(product) {
+  cy.get('[class="inventory_item_name"]')
+    .contains(product.name)
+    .parents('[class="inventory_item"]')
+    .should("contain", product.price);
+
+  enterToDetails(product);
+  cy.get('[class="inventory_details_name"]').should("contain", product.name);
+  cy.get('[class="inventory_details_price"]').should("contain", product.price);
+
+  backFromDetails();
+}
+
+function backFromDetails() {
+  cy.get('[class="inventory_details_back_button"]').click({ force: true });
+}
+
+function enterToDetails(product) {
+  cy.get('[class="inventory_item_name"]').contains(product.name).click();
+}
